@@ -1,8 +1,10 @@
 import React from "react";
-import { Table, Input, InputNumber, Popconfirm, Form } from "antd";
+import { Table, Input, InputNumber, Popconfirm, Form, Button, Row, Modal } from "antd";
+import nanoid from 'nanoid';
 import EditableCell from "./EditableCell";
 import DUMMY_ORDERS from "./orders.json";
 import EditableContext from "./EditableContext";
+import WrappedAddOrderForm from "./AddOrderForm";
 
 class OrderList extends React.Component {
   constructor(props) {
@@ -18,7 +20,7 @@ class OrderList extends React.Component {
         };
       });
     }
-    this.state = { data: orders, editingKey: "" };
+    this.state = { data: orders, editingKey: "", isAddFormOpen: false };
 
     this.columns = [
       {
@@ -131,6 +133,22 @@ class OrderList extends React.Component {
     this.setState({ editingKey: key });
   }
 
+  handleAddOrder = (order) => {
+    const id = nanoid(24);
+    const newOrder = Object.assign(order, {
+      ...order,
+      id,
+      key: id
+    });
+    const newData = [...this.state.data];
+    newData.unshift(newOrder);
+    this.setState({
+      data: newData
+    });
+    this.setState({ isAddFormOpen: false });
+    localStorage.setItem('orders', JSON.stringify(newData));
+  }
+
   render() {
     const components = {
       body: {
@@ -156,16 +174,25 @@ class OrderList extends React.Component {
 
     return (
       <EditableContext.Provider value={this.props.form}>
-        <Table
-          components={components}
-          bordered
-          dataSource={this.state.data}
-          columns={columns}
-          rowClassName="editable-row"
-          pagination={{
-            onChange: this.cancel
-          }}
-        />
+        <Row style={{ margin: 20}}>
+          <Button onClick={() =>{
+            this.setState({isAddFormOpen: !this.state.isAddFormOpen})
+          }} type="primary">Add Order</Button>
+        </Row>
+        <Row>
+          <Table
+              components={components}
+              bordered
+              dataSource={this.state.data}
+              columns={columns}
+              rowClassName="editable-row"
+              pagination={{
+                onChange: this.cancel
+              }}
+          />
+        </Row>
+        <WrappedAddOrderForm visible={this.state.isAddFormOpen} onAdd={this.handleAddOrder}
+            onClose={() => this.setState({ isAddFormOpen: false })}/>
       </EditableContext.Provider>
     );
   }
