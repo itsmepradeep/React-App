@@ -4,7 +4,7 @@ import nanoid from 'nanoid';
 import EditableCell from "./EditableCell";
 import DUMMY_ORDERS from "./orders.json";
 import EditableContext from "./EditableContext";
-import WrappedAddOrderForm from "./AddOrderForm";
+import AddOrderForm from "./AddOrderForm";
 
 class OrderList extends React.Component {
   constructor(props) {
@@ -191,7 +191,7 @@ class OrderList extends React.Component {
               }}
           />
         </Row>
-        <WrappedAddOrderForm visible={this.state.isAddFormOpen} onAdd={this.handleAddOrder}
+        <AddOrderForm visible={this.state.isAddFormOpen} onAdd={this.handleAddOrder}
             onClose={() => this.setState({ isAddFormOpen: false })}/>
       </EditableContext.Provider>
     );
