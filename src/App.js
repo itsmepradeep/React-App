@@ -1,32 +1,18 @@
 /* global gapi */
 
-import React from 'react';
-import { connect } from 'react-redux'
+import React from "react";
+import { connect } from "react-redux";
+import GoogleLogin from "react-google-login";
+import { Spin, Layout, Button, Row, Col, Avatar, message } from "antd";
+import EditableFormTable from "./OrderList";
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Link
-} from "react-router-dom";
-import logo from './logo.svg';
-import './App.css';
-import Login from './Login';
-import EditableFormTable from './OrderList';
-import { setAuthenticated, setError, googleApiLoaded, setUserProfile } from './action-creators/appActions';
-import GoogleLogin from 'react-google-login';
-import { Spin, Layout, Button, Row, Col } from 'antd';
-const { Header, Footer, Content } = Layout;
+  setAuthenticated,
+  googleApiLoaded,
+  setUserProfile
+} from "./action-creators/appActions";
+import SECRETS from "./secrets";
 
-const constructUserProfile = currentUser => {
-  const user = currentUser.get();
-  console.log(user.getBasicProfile())
-  return {
-    imageUrl: currentUser.get('imageUrl'),
-    email: currentUser.get('email'),
-    name: currentUser.get('givenName'),
-    fullname: currentUser.get('givenName') + currentUser.get('familyName')
-  }
-}
+const { Header, Footer, Content } = Layout;
 
 class App extends React.Component {
   constructor(props, context) {
@@ -40,89 +26,125 @@ class App extends React.Component {
     const script = document.createElement("script");
     script.src = "https://apis.google.com/js/platform.js";
     script.onload = () => {
-      gapi.load('auth2', () => {
-        console.log('loaded auth2')
-        this.GoogleAuth = gapi.auth2.init({
-          scope: 'profile email',
-          client_id: '690572864489-l1ovcqtf1c0agf64idh65d3kgfkoafe8.apps.googleusercontent.com'
-        });
-        this.props.googleApiLoaded();
-        this.GoogleAuth.isSignedIn.listen(this.onAuthStateChange);
+      gapi.load("auth2", () => {
+        gapi.auth2
+          .init({
+            scope: "profile email",
+            client_id: SECRETS.client_id
+          })
+          .then(GoogleAuth => {
+            this.GoogleAuth = GoogleAuth;
+            this.props.googleApiLoaded();
+            this.onAuthStateChange(this.GoogleAuth.isSignedIn.get());
+            this.GoogleAuth.isSignedIn.listen(this.onAuthStateChange);
+          });
       });
-    }
+    };
     document.body.appendChild(script);
-  }
+  };
 
-  onAuthStateChange = (isAuthenticated) => {
-    console.log(isAuthenticated);
+  onAuthStateChange = isAuthenticated => {
     if (isAuthenticated) {
-      const profile = JSON.parse(localStorage.getItem('profile'));
-      this.props.setUserProfile(profile); 
+      // get user info stored in the localstorage
+      const profile = JSON.parse(localStorage.getItem("profile"));
+      this.props.setUserProfile(profile);
     }
     this.props.setAuthenticated(isAuthenticated);
-  }
+  };
 
   signOut = () => {
-    localStorage.removeItem('profile');
+    // clear data
+    localStorage.removeItem("profile");
     this.props.setAuthenticated(false);
     this.props.setUserProfile(null);
     this.GoogleAuth.signOut();
+  };
+
+  handleError(error) {
+    switch (error) {
+      case "popup_closed_by_user":
+        message.error("Popup has been closed. Please try again!");
+        break;
+      default:
+        message.error(error);
+    }
   }
 
   renderApp() {
-    const { authenticated } = this.props.app;
-    console.log(this.props.app)
+    const { authenticated, userProfile } = this.props.app;
     if (authenticated) {
       return (
         <Layout>
           <Header>
-          <Row type="flex" justify="end">
+            <Row type="flex" justify="space-between">
               <Col>
-                <Button ghost onClick={this.signOut}>Logout</Button>
+                <p style={{ color: "white" }}>{userProfile.name}</p>
+              </Col>
+              <Col>
+                <Button ghost onClick={this.signOut}>
+                  Logout
+                </Button>
               </Col>
             </Row>
           </Header>
           <Content>
-            <EditableFormTable/>
+            <EditableFormTable />
           </Content>
           <Footer>
             <Row type="flex" justify="center">
-              <Col>
-                Utilize Demo App
-              </Col>
+              <Col>Utilize Demo App</Col>
             </Row>
           </Footer>
         </Layout>
-      )
+      );
     }
     return (
-      <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}}>
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)"
+        }}
+      >
         <GoogleLogin
-          clientId="690572864489-l1ovcqtf1c0agf64idh65d3kgfkoafe8.apps.googleusercontent.com"
-          buttonText="Login"
+          clientId={SECRETS.client_id}
           onSuccess={responseGoogle => {
-            localStorage.setItem('profile', JSON.stringify(responseGoogle.profileObj));
+            localStorage.setItem(
+              "profile",
+              JSON.stringify(responseGoogle.profileObj)
+            );
             this.props.setUserProfile(responseGoogle.profileObj);
           }}
-          onFailure={(responseGoogle) => console.log(responseGoogle)}
-          cookiePolicy={'single_host_origin'}
+          onFailure={error => {
+            this.handleError(error.error);
+          }}
+          cookiePolicy={"single_host_origin"}
+          buttonText={"Login with your Google Account"}
         />
       </div>
-    )
+    );
   }
 
   renderLoader() {
     return (
-        <Spin style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}}/>
-    )
+      <Spin
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)"
+        }}
+      />
+    );
   }
 
   render() {
     const { googleApiLoaded } = this.props.app;
-    return ( 
-        <div style={{position: 'relative', width: '100v', height: '100vh'}}>
-          { googleApiLoaded ? this.renderApp() : this.renderLoader() }
-        </div>
+    return (
+      <div style={{ position: "relative", width: "100v", height: "100vh" }}>
+        {googleApiLoaded ? this.renderApp() : this.renderLoader()}
+      </div>
     );
   }
 }
@@ -130,13 +152,14 @@ class App extends React.Component {
 const mapStateToProps = state => {
   return {
     app: state
-  }
-}
-const mapDispatchToProps = (dispatch) => ({
+  };
+};
+
+const mapDispatchToProps = dispatch => ({
   googleApiLoaded: () => dispatch(googleApiLoaded()),
-  setAuthenticated: (isAuthenticated) => dispatch(setAuthenticated(isAuthenticated)),
-  setError: (error) => dispatch(setError(error)),
-  setUserProfile: (userProfile) => dispatch(setUserProfile(userProfile))
-})
+  setAuthenticated: isAuthenticated =>
+    dispatch(setAuthenticated(isAuthenticated)),
+  setUserProfile: userProfile => dispatch(setUserProfile(userProfile))
+});
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);

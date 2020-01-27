@@ -1,107 +1,69 @@
-import React from 'react';
-import { Table, Input, InputNumber, Popconfirm, Form } from 'antd';
-import data from './orders.json';
-
-const EditableContext = React.createContext();
-
-class EditableCell extends React.Component {
-  getInput = () => {
-    if (this.props.inputType === 'number') {
-      return <InputNumber />;
-    }
-    return <Input />;
-  };
-
-  renderCell = ({ getFieldDecorator }) => {
-    const {
-      editing,
-      dataIndex,
-      title,
-      inputType,
-      record,
-      index,
-      children,
-      ...restProps
-    } = this.props;
-    return (
-      <td {...restProps}>
-        {editing ? (
-          <Form.Item style={{ margin: 0 }}>
-            {getFieldDecorator(dataIndex, {
-              rules: [
-                {
-                  required: true,
-                  message: `Please Input ${title}!`,
-                },
-              ],
-              initialValue: record[dataIndex],
-            })(this.getInput())}
-          </Form.Item>
-        ) : (
-          children
-        )}
-      </td>
-    );
-  };
-
-  render() {
-    return <EditableContext.Consumer>{this.renderCell}</EditableContext.Consumer>;
-  }
-}
+import React from "react";
+import { Table, Input, InputNumber, Popconfirm, Form } from "antd";
+import EditableCell from "./EditableCell";
+import DUMMY_ORDERS from "./orders.json";
+import EditableContext from "./EditableContext";
 
 class OrderList extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { data: data.map(d => {
+    let orders = localStorage.getItem("orders");
+    if (orders) {
+      orders = JSON.parse(orders);
+    } else {
+      orders = DUMMY_ORDERS.map(order => {
         return {
-            ...d,
-            key: d.id
-        }
-    }), editingKey: '' };
+          ...order,
+          key: order.id
+        };
+      });
+    }
+    this.state = { data: orders, editingKey: "" };
+
     this.columns = [
       {
-        title: 'Order ID',
-        dataIndex: 'id',
-        width: '20%',
+        title: "Order ID",
+        dataIndex: "id",
+        width: "20%",
         editable: false,
-        key: 'id',
-        dataType: 'text'
+        key: "id",
+        dataType: "text"
       },
       {
-        title: 'Customer Name',
-        dataIndex: 'customer_name',
-        width: '20%',
+        title: "Customer Name",
+        dataIndex: "customer_name",
+        width: "20%",
         editable: true,
-        key: 'customer_name',
-        dataType: 'text'
+        key: "customer_name",
+        dataType: "text"
       },
       {
-        title: 'Customer Email',
-        dataIndex: 'customer_email',
-        width: '20%',
+        title: "Customer Email",
+        dataIndex: "customer_email",
+        width: "20%",
         editable: true,
-        key: 'customer_email',
-        dataType: 'text'
+        key: "customer_email",
+        dataType: "text"
       },
       {
-        title: 'Product',
-        dataIndex: 'product',
-        width: '20%',
+        title: "Product",
+        dataIndex: "product",
+        width: "20%",
         editable: true,
-        key: 'product',
-        dataType: 'text'
+        key: "product",
+        dataType: "text"
       },
       {
-        title: 'Quantity',
-        dataIndex: 'quantity',
-        width: '10%',
+        title: "Quantity",
+        dataIndex: "quantity",
+        width: "10%",
         editable: true,
-        key: 'quantity',
-        dataType: 'number'
+        key: "quantity",
+        dataType: "number"
       },
       {
-        title: 'operation',
-        dataIndex: 'operation',
+        title: "operation",
+        dataIndex: "operation",
         render: (text, record) => {
           const { editingKey } = this.state;
           const editable = this.isEditing(record);
@@ -117,24 +79,30 @@ class OrderList extends React.Component {
                   </a>
                 )}
               </EditableContext.Consumer>
-              <Popconfirm title="Sure to cancel?" onConfirm={() => this.cancel(record.key)}>
+              <Popconfirm
+                title="Sure to cancel?"
+                onConfirm={() => this.cancel(record.key)}
+              >
                 <a>Cancel</a>
               </Popconfirm>
             </span>
           ) : (
-            <a disabled={editingKey !== ''} onClick={() => this.edit(record.key)}>
+            <a
+              disabled={editingKey !== ""}
+              onClick={() => this.edit(record.key)}
+            >
               Edit
             </a>
           );
-        },
-      },
+        }
+      }
     ];
   }
 
   isEditing = record => record.key === this.state.editingKey;
 
   cancel = () => {
-    this.setState({ editingKey: '' });
+    this.setState({ editingKey: "" });
   };
 
   save(form, key) {
@@ -148,13 +116,14 @@ class OrderList extends React.Component {
         const item = newData[index];
         newData.splice(index, 1, {
           ...item,
-          ...row,
+          ...row
         });
-        this.setState({ data: newData, editingKey: '' });
+        this.setState({ data: newData, editingKey: "" });
       } else {
         newData.push(row);
-        this.setState({ data: newData, editingKey: '' });
+        this.setState({ data: newData, editingKey: "" });
       }
+      localStorage.setItem("orders", JSON.stringify(newData));
     });
   }
 
@@ -165,8 +134,8 @@ class OrderList extends React.Component {
   render() {
     const components = {
       body: {
-        cell: EditableCell,
-      },
+        cell: EditableCell
+      }
     };
 
     const columns = this.columns.map(col => {
@@ -177,11 +146,11 @@ class OrderList extends React.Component {
         ...col,
         onCell: record => ({
           record,
-          inputType: col.dataType || 'text',
+          inputType: col.dataType || "text",
           dataIndex: col.dataIndex,
           title: col.title,
-          editing: this.isEditing(record),
-        }),
+          editing: this.isEditing(record)
+        })
       };
     });
 
@@ -194,7 +163,7 @@ class OrderList extends React.Component {
           columns={columns}
           rowClassName="editable-row"
           pagination={{
-            onChange: this.cancel,
+            onChange: this.cancel
           }}
         />
       </EditableContext.Provider>
@@ -204,4 +173,4 @@ class OrderList extends React.Component {
 
 const EditableFormTable = Form.create()(OrderList);
 
-export default EditableFormTable
+export default EditableFormTable;
